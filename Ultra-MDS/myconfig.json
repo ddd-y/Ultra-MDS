@@ -1,0 +1,45 @@
+{
+  "login": {
+    "brokerID": "",
+    "userID": "",
+    "password": "",
+    "tcpAddress": "tcp://182.254.243.31:40011"
+  },
+  "UDP": {
+    "multicast_addr": "239.0.0.1",
+    "port": 8888
+  },
+  "subscribed_contracts": [
+    "rb2605",
+    "hc2605",
+    "cu2605",
+    "IF2605"
+  ],
+  "validation": {
+    "global_default": {
+      "enable_base_check": false,
+      "enable_time_check": true,
+      "enable_timestamp_check": true,
+      "enable_price_check": true,
+      "enable_volume_check": true,
+      "enable_abnormal_packet_check": true,
+      "timestamp_base": "TradingDay",
+      "max_disorder_tolerance_ms": 10,
+      "allow_same_ms_data": true,
+      "check_bid_ask_levels": 1,
+      "max_invert_spread_tick": 1,
+      "limit_price_tolerance_ratio": 0.0001,
+      "skip_zero_limit_price": true
+    },
+    "contract_specific": {
+      "IF2605": {
+        "check_bid_ask_levels": 5,
+        "max_invert_spread_tick": 2
+      },
+      "cu2605": {
+        "enable_volume_check": false,
+        "limit_price_tolerance_ratio": 0.0002
+      }
+    }
+  }
+}
