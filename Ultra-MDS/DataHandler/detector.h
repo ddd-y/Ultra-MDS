@@ -1,4 +1,3 @@
-// detector.h 完整改造后代码
 #pragma once
 #include <cstdint>
 #include <cmath>
@@ -11,7 +10,7 @@
 
 using json = nlohmann::json;
 
-// ========== 新增：校验规则结构体，所有配置项带默认值 ==========
+// ====================
 struct ValidationConfig
 {
     // 校验总开关
@@ -89,7 +88,7 @@ private:
     std::string m_contractName; // 绑定的合约名称
     ValidationConfig m_config;   // 该合约专属的校验配置
 
-    // -------------------------- 原有校验函数，适配配置化改造 --------------------------
+
     inline bool checkBaseValidity(const TickData& tick) const
     {
         if (strnlen(tick.InstrumentID, sizeof(tick.InstrumentID)) == 0)
@@ -166,7 +165,7 @@ private:
         return atoll(timestampBuf);
     }
 
-    // 配置化：乱序容忍、同毫秒数据放行
+    // 乱序容忍、同毫秒数据放行
     inline bool checkTimestampNew(const TickData& tick)
     {
         const int64_t currentTs = combineTimestamp(tick);
@@ -174,22 +173,25 @@ private:
         if (currentTs == m_lastTimestamp && m_config.allow_same_ms_data) {
             return true;
         }
-        // 轻微乱序容忍：在阈值内放行
-        int64_t msDiff = (currentTs % 1000) - (m_lastTimestamp % 1000);
-        if (currentTs < m_lastTimestamp && llabs(msDiff) <= m_config.max_disorder_tolerance_ms) {
-            return true;
+        if (currentTs < m_lastTimestamp) {
+            int64_t totalMsDiff = m_lastTimestamp - currentTs;
+            if (totalMsDiff <= m_config.max_disorder_tolerance_ms) {
+                // 轻微乱序容忍
+                return true;
+            }
+            else {
+                // 严重乱序，拦截
+                LOG_WARN("[Tick校验失败] 时间戳非递增 | 合约: {} | 当前: {} | 上次: {} | 差值: {}ms",
+                    tick.InstrumentID, currentTs, m_lastTimestamp, totalMsDiff);
+                return false;
+            }
         }
-        // 核心时序判断
-        if (currentTs > m_lastTimestamp) {
-            m_lastTimestamp = currentTs;
-            return true;
-        }
-        LOG_WARN("[Tick校验失败] 时间戳非递增 | 合约: {} | 当前: {} | 上次: {}",
-            tick.InstrumentID, currentTs, m_lastTimestamp);
-        return false;
+        // 正常递增，更新时间戳
+        m_lastTimestamp = currentTs;
+        return true;
     }
 
-    // 配置化：涨跌停容忍、校验档位、倒挂容忍
+    // 涨跌停容忍、校验档位、倒挂容忍
     inline bool checkPriceValidity(const TickData& tick) const
     {
         auto isInvalidPrice = [](double price) -> bool {
@@ -208,7 +210,7 @@ private:
             return false;
         }
 
-        // 配置化：涨跌停范围校验，带容忍度
+        // 涨跌停范围校验，带容忍度
         if (!m_config.skip_zero_limit_price || (tick.limit_up > 0 && tick.limit_down > 0))
         {
             double tolerance = tick.limit_up * m_config.limit_price_tolerance_ratio;
@@ -220,7 +222,7 @@ private:
             }
         }
 
-        // 配置化：按配置的档位校验买卖盘逻辑
+        // 按配置的档位校验买卖盘逻辑
         int checkLevels = std::min(m_config.check_bid_ask_levels, 5);
         // 买盘档位逻辑
         for (int i = 1; i < checkLevels; ++i)
@@ -295,7 +297,7 @@ private:
     }
 
 public:
-    // ========== 改造构造函数：传入合约名+校验配置 ==========
+    // ========== 构造函数：传入合约名+校验配置 ==========
     Detector(const std::string& contractName, const json& globalRules, const std::optional<json>& contractRules)
         : m_contractName(contractName)
         , m_config(ValidationConfig::fromJson(globalRules, contractRules))
