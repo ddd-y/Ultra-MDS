@@ -13,7 +13,13 @@
     "rb2605",
     "hc2605",
     "cu2605",
-    "IF2605"
+    "IF2603",
+    "al2604",
+    "m2605",
+    "y2605",
+    "TA2605",
+    "MA2605",
+    "sc2604"
   ],
   "validation": {
     "global_default": {
@@ -32,7 +38,7 @@
       "skip_zero_limit_price": true
     },
     "contract_specific": {
-      "IF2605": {
+      "IF2603": {
         "check_bid_ask_levels": 5,
         "max_invert_spread_tick": 2
       },
