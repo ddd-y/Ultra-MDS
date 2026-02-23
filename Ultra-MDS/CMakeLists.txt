@@ -4,14 +4,41 @@
 cmake_minimum_required(VERSION 3.16)
 project(Ultra-MDS CXX)
 
+
 # ========== Protobuf 配置 ==========
-find_package(Protobuf 3.21.12 EXACT REQUIRED)
+find_package(Protobuf REQUIRED)
+message(STATUS "✅ Protobuf 找到！版本: ${Protobuf_VERSION}")
+
+# 定义路径：直接指向源码里的 SharedDefine
+set(PROTO_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SharedDefine")
+set(PROTO_FILE "${PROTO_SRC_DIR}/tick_data.proto")
+
+# 直接调用 protoc 命令，生成对应的文件
+add_custom_command(
+    OUTPUT 
+        ${PROTO_SRC_DIR}/tick_data.pb.h 
+        ${PROTO_SRC_DIR}/tick_data.pb.cc
+    COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+    ARGS 
+        --cpp_out=${PROTO_SRC_DIR}  # 直接输出到源码的 SharedDefine！！！
+        --proto_path=${PROTO_SRC_DIR}
+        tick_data.proto
+    DEPENDS ${PROTO_FILE}
+    COMMENT "🔧 正在将 Protobuf 文件生成到源码目录: ${PROTO_SRC_DIR}"
+)
 message(STATUS "========================================")
 message(STATUS "✅ Protobuf 找到！")
 message(STATUS "   版本: ${Protobuf_VERSION}")
 message(STATUS "   头文件路径: ${Protobuf_INCLUDE_DIRS}")
 message(STATUS "   库文件: ${Protobuf_LIBRARIES}")
 message(STATUS "========================================")
+
+# 核心：只指向【源码目录的SharedDefine】（你要的目标目录，全程不碰构建目录）
+set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SharedDefine")  # 就是你图里的SharedDefine
+set(PROTO_FILE "${PROTO_DIR}/tick_data.proto")             # 源码里的proto文件
+
+# 关键：指定protoc的--proto_path，解决生成的.pb.cc里#include带"SharedDefine/"前缀的致命问题
+set(PROTOBUF_PROTOC_OPTIONS "--proto_path=${CMAKE_CURRENT_SOURCE_DIR}")
 
 find_package(Boost REQUIRED COMPONENTS system)
 
@@ -30,7 +57,7 @@ add_executable (Ultra-MDS
     "CtpRelated/MarketSPI.h" 
     "CtpRelated/MarketSPI.cpp" 
     "Tool/SPSCQueue.h" 
-    "DataHandler/detector.h"  
+    "DataHandler/UnitProcessor.h"  
     "configrelated/Loginer.h"   
     "CtpRelated/Contract/Dispatcher.h" 
     "DataHandler/TickHandler.h"  
@@ -42,9 +69,8 @@ add_executable (Ultra-MDS
 
     "SharedDefine/tick_data.pb.h"
     "SharedDefine/tick_data.pb.cc"
+     )
 
-     
-    "test/tick_perf_test.h" )
 
 
 # 编译器优化配置：同时支持 Windows MSVC 和 Linux GCC/Clang
@@ -86,7 +112,7 @@ find_package(spdlog REQUIRED)
 add_library(my_logger STATIC 
     "../Log/Logger.h"
     "../Log/Logger.cpp")
-target_link_libraries(my_logger PUBLIC spdlog::spdlog fmt::fmt)
+target_link_libraries(my_logger PUBLIC spdlog::spdlog)
 target_include_directories(my_logger PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../Log")
 
 # ========== 头文件包含目录 ==========
@@ -113,8 +139,7 @@ target_link_libraries(Ultra-MDS PRIVATE
     "thostmduserapi_se"
     "thosttraderapi_se"
     pthread
-    ${Protobuf_LIBRARIES}
-    protobuf
+    ${Protobuf_LIBRARIES}  
     ${Boost_LIBRARIES}
 )
 
@@ -123,10 +148,9 @@ add_definitions(-DDEFAULT_LOG_PATH="${CMAKE_CURRENT_BINARY_DIR}/logs/test_log.tx
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/logs")
 add_custom_command(TARGET Ultra-MDS PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/logs"
-    COMMENT "Ensuring logs directory exists..."
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/myconfig.json
         ${CMAKE_CURRENT_BINARY_DIR}/myconfig.json
-    COMMENT "Syncing config file..."
+    COMMENT "Ensuring logs directory exists and syncing config file..."
 )
 

@@ -12,6 +12,18 @@
 namespace asio = boost::asio;
 using udp = asio::ip::udp;
 
+class UdpSender 
+{
+    asio::io_context io_context_;      
+    udp::socket udp_socket_;
+    void initUdpMulticast();
+public:
+    UdpSender() :udp_socket_(io_context_)
+    {
+		initUdpMulticast();
+    }
+    inline void SendMessage(const TickData& Tick);
+};
 class TickHandler {
 private:
     rigtorp::SPSCQueue<TickData>* my_queue_Tick;
@@ -19,11 +31,7 @@ private:
 
     std::thread my_worker_thread_Tick;        // 线程句柄
 
-    asio::io_context io_context_;          // Asio IO上下文
-    udp::socket udp_socket_;               
-    udp::endpoint multicast_endpoint_;     // 组播目标端点
-    static std::string multicast_addr_; // 组播地址（D类地址：224.0.0.0-239.255.255.255）
-    static uint16_t multicast_port_;          // 组播端口
+    UdpSender udp_sender_;
 
 
     void processLoop();
@@ -34,13 +42,9 @@ private:
     //处理tickdata的成员函数
     inline void HandleTick(const TickData& Tick);
 
-    void initUdpMulticast();
-	inline void SendMessage(const TickData& Tick);
 public:
     TickHandler(rigtorp::SPSCQueue<TickData>* n_queue)
-       :my_queue_Tick(n_queue), udp_socket_(io_context_) {
-        initUdpMulticast();
-    }
+        :my_queue_Tick(n_queue) {}
 
     // 析构时确保线程安全退出
     ~TickHandler() { stop(); }
@@ -50,6 +54,4 @@ public:
 
     rigtorp::SPSCQueue<TickData>* GetTickQueue() { return my_queue_Tick; }
 
-	static void setMulticastAddress(const std::string& addr) { multicast_addr_ = addr; }
-	static void setMulticastPort(uint16_t port) { multicast_port_ = port; }
 };

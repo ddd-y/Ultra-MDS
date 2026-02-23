@@ -1,5 +1,6 @@
 #pragma once
 #include<string>
+#include <thread>
 #include"ThostFtdcMdApi.h"
 #include"ThostFtdcTraderApi.h"
 #include"Logger.h"
