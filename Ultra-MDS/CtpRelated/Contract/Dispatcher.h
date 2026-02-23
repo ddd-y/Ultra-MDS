@@ -5,13 +5,13 @@
 #include <string_view>
 #include "TickData.h"
 #include "SPSCQueue.h"
-#include"../DataHandler/detector.h"
+#include"../DataHandler/UnitProcessor.h"
 
-//存储一个detector的索引和contract的索引
+//存储一个unitprocessor的索引和contract的索引
 struct DispatchUnit 
 {
     int Index_Contract;
-    int Index_Detector;
+    int Index_UnitProcessor;
 };
 // 透明哈希，允许直接用 std::string_view 查找
 struct TransparentHash {
@@ -26,31 +26,29 @@ private:
 
     //这俩生命周期还是由systemstarter管理
     std::vector<rigtorp::SPSCQueue<TickData>*> contracts_;
-    std::vector<Detector*> Detectors;
+    std::vector<UnitProcessor*> UnitProcessors;
 
     std::unordered_map<std::string, DispatchUnit, TransparentHash, std::equal_to<>> mapping_;
     static Dispatcher instance;
     
-    //用来计数，因为队列满了而丢掉的tickdata有多少
-    int drop_count_tick = 0;
 public:
     static void initDispatcher(
         const std::vector<std::string>& contractList,
         const std::vector<rigtorp::SPSCQueue<TickData>*>& tickQueues,
-        const std::vector<Detector*> n_detectors) {
+        const std::vector<UnitProcessor*> n_processors) {
 
-        instance.Detectors = n_detectors;
+        instance.UnitProcessors = n_processors;
 
         const size_t n = tickQueues.size();
         instance.contracts_.reserve(n);
         instance.contracts_ = tickQueues;
 
         // 轮询分配合约到线程
-        const size_t contract_size  = contractList.size();
+        const size_t contract_size  = n_processors.size();
         int threadIdx_ = 0;
         for (int i = 0; i < contract_size; ++i) 
         {
-            instance.mapping_.emplace(contractList[i], DispatchUnit{ threadIdx_,i });
+            instance.mapping_.emplace(n_processors[i]->getContractName(), DispatchUnit{threadIdx_,i});
             threadIdx_= (threadIdx_ + 1) % n;
         }
     }
@@ -59,9 +57,11 @@ public:
     static void dispatch(const CThostFtdcDepthMarketDataField& data) {
         auto it = instance.mapping_.find(std::string_view(data.InstrumentID));
         if (it != instance.mapping_.end()) {
-            if(instance.contracts_[it->second.Index_Contract]->try_emplace
-            (data, instance.Detectors[it->second.Index_Detector]))
-                ++instance.drop_count_tick;
+            if (!instance.contracts_[it->second.Index_Contract]->try_emplace
+            (data, instance.UnitProcessors[it->second.Index_UnitProcessor]))
+            {
+                LOG_WARN("有行情数据被丢弃");
+            }
         }
     }
 };

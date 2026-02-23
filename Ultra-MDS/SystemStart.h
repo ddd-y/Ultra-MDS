@@ -13,21 +13,21 @@
 #include"CtpRelated/Contract/Container.h"
 #include"../configrelated/ConfigRead.h"
 #include"../configrelated/Loginer.h"
-#include "../DataHandler/detector.h"
+#include "../DataHandler/UnitProcessor.h"
 
 constexpr const char* CONFIG_PATH = "./myconfig.json";
-constexpr const int MAX_TICK_QUEUE_SIZE = 64;
+constexpr const int MAX_TICK_QUEUE_SIZE = 8;
 
 inline int getBizCoreId(int thread_idx, long total_cpu_count) {
     if (total_cpu_count <= 1) return 0;
-    int base_core = 1 + thread_idx;
+    int base_core = thread_idx;
     return base_core % total_cpu_count;
 }
 
 class SystemStarter {
 private:
     std::vector<std::unique_ptr<TickHandler>> tickHandlers_;
-    std::vector<std::unique_ptr<Detector>> Detectors_;
+    std::vector<std::unique_ptr<UnitProcessor>> UnitProcessors_;
     ConfigReader m_configReader; // 全局配置读取实例
     json m_globalValidationRules; // 缓存全局校验规则
 
@@ -48,23 +48,23 @@ private:
         const std::vector<std::string>& contractList = ContractContainer::instance().getAllContracts();
         int contract_num = static_cast<int>(contractList.size());
 
-        // 改造：为每个合约创建带配置的Detector实例
-        std::vector<Detector*> tempDetectors;
-        tempDetectors.reserve(contract_num);
+        // 改造：为每个合约创建带配置的UnitProcessor实例
+        std::vector<UnitProcessor*> tempUnitProcessors;
+        tempUnitProcessors.reserve(contract_num);
         for (const auto& contract : contractList)
         {
             // 读取该合约的专属配置
             auto contractConfig = m_configReader.getContractValidationConfig(contract);
-            // 创建Detector实例
-            Detectors_.emplace_back(std::make_unique<Detector>(contract, m_globalValidationRules, contractConfig));
-            tempDetectors.push_back(Detectors_.back().get());
+            // 创建UnitProcessor实例
+            UnitProcessors_.emplace_back(std::make_unique<UnitProcessor>(contract, m_globalValidationRules, contractConfig));
+            tempUnitProcessors.push_back(UnitProcessors_.back().get());
         }
 
         // CPU核心分配、TickHandler创建
         long cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
         if (cpu_count <= 0) {
-            LOG_ERROR("获取CPU核心数失败，使用默认值4");
-            cpu_count = 4;
+            LOG_ERROR("获取CPU核心数失败，使用默认值1");
+            cpu_count = 1;
         }
         if (cpu_count == 1) {
             LOG_WARN("系统仅1个CPU核心，无法避开系统核心，业务线程将与系统共享CPU0");
@@ -94,13 +94,12 @@ private:
         }
 
         // Dispatcher初始化
-        Dispatcher::initDispatcher(contractList, tick_queues, tempDetectors);
+        Dispatcher::initDispatcher(contractList, tick_queues, tempUnitProcessors);
     }
 
     void ConfigInit()
     {
         try {
-			UDPConfigInit(); // 先加载UDP组播配置，确保TickHandler能正确使用
             // 读取登录信息
             std::string brokerID = m_configReader.getString(std::vector<std::string>{ "login", "brokerID" });
             std::string userID = m_configReader.getString(std::vector<std::string>{ "login", "userID" });
@@ -128,16 +127,7 @@ private:
         }
     }
 
-	//UDP组播配置初始化
-    void UDPConfigInit() 
-    {
-        std::string multicastAddr = m_configReader.getString(std::vector<std::string>{ "UDP", "multicast_addr" });
-        uint16_t multicastPort = static_cast<uint16_t>(m_configReader.getInt(std::vector<std::string>{ "UDP", "port" }));
 
-        TickHandler::setMulticastAddress(multicastAddr);
-        TickHandler::setMulticastPort(multicastPort);
-		LOG_INFO("UDP组播配置加载成功 | 地址：{} | 端口：{}", multicastAddr, multicastPort);
-    }
 
 public:
     SystemStarter() : m_configReader(CONFIG_PATH) {
