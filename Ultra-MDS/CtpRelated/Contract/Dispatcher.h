@@ -55,10 +55,12 @@ public:
 
 	// 这个函数会被行情线程调用，分发tickdata到对应的队列
     static void dispatch(const CThostFtdcDepthMarketDataField& data) {
+        auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         auto it = instance.mapping_.find(std::string_view(data.InstrumentID));
         if (it != instance.mapping_.end()) {
             if (!instance.contracts_[it->second.Index_Contract]->try_emplace
-            (data, instance.UnitProcessors[it->second.Index_UnitProcessor]))
+            (data, instance.UnitProcessors[it->second.Index_UnitProcessor],now))
             {
                 LOG_WARN("有行情数据被丢弃");
             }

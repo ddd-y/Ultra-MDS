@@ -30,7 +30,7 @@ struct TickData {
     char TradingDay[9];
 
     // 构造函数中拷贝ExchangeID
-    TickData(const CThostFtdcDepthMarketDataField& Data, UnitProcessor* detector)
+    TickData(const CThostFtdcDepthMarketDataField& Data, UnitProcessor* detector ,int64_t n_receivetime)
         :last_price(Data.LastPrice),
         limit_up(Data.UpperLimitPrice),
         limit_down(Data.LowerLimitPrice),
@@ -39,8 +39,7 @@ struct TickData {
         volume(Data.Volume),
         updatemill(Data.UpdateMillisec),
         m_detector(detector),
-        local_receive_time(std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch()).count())
+        local_receive_time(n_receivetime)
     {
         std::memcpy(InstrumentID, Data.InstrumentID, sizeof(InstrumentID));
         std::memcpy(ExchangeID, Data.ExchangeID, sizeof(ExchangeID)); 

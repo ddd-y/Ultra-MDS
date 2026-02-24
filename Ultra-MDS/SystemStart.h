@@ -69,7 +69,7 @@ private:
         if (cpu_count == 1) {
             LOG_WARN("系统仅1个CPU核心，无法避开系统核心，业务线程将与系统共享CPU0");
         }
-        int available_core_num = (cpu_count > 1) ? (cpu_count - 1) : 1;
+        int available_core_num = (cpu_count > 1) ? (cpu_count) : 1;
         int thread_num = std::max(1, std::min(available_core_num, contract_num));
         LOG_INFO("检测到CPU核心数：{}，可用业务核心数：{}，合约数量：{}，最终初始化TickHandler数：{}",
             cpu_count, available_core_num, contract_num, thread_num);
