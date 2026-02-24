@@ -11,7 +11,7 @@ void MarketSPI::OnFrontConnected()
     CThostFtdcMdApi* api = MarketManager::getMarketApi();
     int LoginResult = Loginer::Login(api);
     if (LoginResult != 0) {
-
+		LOG_INFO("MarketSPI::OnFrontConnected - 登录请求发送失败，错误码: {}", LoginResult);
     }
 }
 
@@ -129,4 +129,5 @@ void MarketManager::Init()
 	instance.marketApi->RegisterSpi(instance.marketSPI);
 	instance.marketApi->RegisterFront(const_cast<char*>(Loginer::getInstance().getTcpAddress().c_str()));
 	instance.marketApi->Init();
+	LOG_INFO("MarketManager 初始化");
 }

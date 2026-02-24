@@ -1,0 +1,19 @@
+syntax = "proto3";
+message TickDataMes {
+  double last_price = 1;
+  repeated double bid_price = 2;  
+  repeated double ask_price = 3;  
+  double limit_up = 4;
+  double limit_down = 5;
+
+  int32 volume = 6;
+  int32 updatemill = 7;
+  repeated int32 bid_volume = 8; 
+  repeated int32 ask_volume = 9; 
+
+  string InstrumentID = 10;
+  string ExchangeID = 11;
+  string update_time = 12;
+  string Action_Day = 13;
+  string TradingDay = 14;
+}

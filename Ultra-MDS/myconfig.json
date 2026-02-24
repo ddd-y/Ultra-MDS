@@ -1,13 +1,9 @@
 {
   "login": {
-    "brokerID": "",
+    "brokerID": "9999",
     "userID": "",
     "password": "",
     "tcpAddress": "tcp://182.254.243.31:40011"
-  },
-  "UDP": {
-    "multicast_addr": "239.0.0.1",
-    "port": 8888
   },
   "subscribed_contracts": [
     "rb2605",
@@ -16,17 +12,14 @@
     "IF2603",
     "IC2603",
     "IM2603",
-    "al2604",
-    "m2605",
-    "y2605",
-    "TA2605",
-    "MA2605",
-    "sc2604"
+    "al2605",
+    "T2606"
   ],
   "validation": {
     "global_default": {
-      "enable_base_check": false,
-      "enable_time_check": true,
+      "port": 8888,
+      "Multi_add": "239.0.0.1",
+      "enable_exchange_check": true,
       "enable_timestamp_check": true,
       "enable_price_check": true,
       "enable_volume_check": true,
@@ -36,15 +29,20 @@
       "allow_same_ms_data": true,
       "check_bid_ask_levels": 1,
       "max_invert_spread_tick": 1,
+      "tick_size": 1.0,
       "limit_price_tolerance_ratio": 0.0001,
-      "skip_zero_limit_price": true
+      "skip_zero_limit_price": true,
+      "exchange_whitelist": [ "", "CFFEX" ]
     },
     "contract_specific": {
       "IF2603": {
+        "port": 8889,
         "check_bid_ask_levels": 5,
-        "max_invert_spread_tick": 2
+        "max_invert_spread_tick": 2,
+        "tick_size": 0.2
       },
       "cu2605": {
+        "port": 9991,
         "enable_volume_check": false,
         "limit_price_tolerance_ratio": 0.0002
       }
