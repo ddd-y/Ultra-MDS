@@ -303,17 +303,15 @@ private:
             }
         }
         // 同档位买卖盘倒挂校验
-        for (int i = 0; i < checkLevels; ++i)
+        if (!isInvalidPrice(tick.bid_price[0]) && !isInvalidPrice(tick.ask_price[0])
+            && tick.bid_price[0] != 0 && tick.ask_price[0] != 0)
         {
-            if (tick.bid_price[i] == 0 || tick.ask_price[i] == 0) continue;
-            // 计算允许的最大倒挂价差 = 容忍tick数 * 最小变动单位
             double maxAllowInvertSpread = m_config.max_invert_spread_tick * m_config.tick_size;
-            // 实际倒挂价差（买价 - 卖价，正数表示倒挂）
-            double actualInvertSpread = tick.bid_price[i] - tick.ask_price[i];
-            if (actualInvertSpread > maxAllowInvertSpread + 1e-8)
-            {
-                LOG_INFO("[Tick校验失败] 买卖盘价格倒挂超出容忍范围 | 合约: {} | 买{}价: {} | 卖{}价: {} | 容忍最大倒挂: {} | 实际倒挂: {}",
-                    tick.InstrumentID, i + 1, tick.bid_price[i], i + 1, tick.ask_price[i], maxAllowInvertSpread, actualInvertSpread);
+            double actualInvertSpread = tick.bid_price[0] - tick.ask_price[0];
+
+            if (actualInvertSpread > maxAllowInvertSpread + 1e-8) {
+                LOG_INFO("[Tick校验失败] 买卖盘价格倒挂超出容忍范围 | 合约: {} | 买一价: {} | 卖一价: {} | 容忍最大倒挂: {} | 实际倒挂: {}",
+                    tick.InstrumentID, tick.bid_price[0], tick.ask_price[0], maxAllowInvertSpread, actualInvertSpread);
                 return false;
             }
         }
