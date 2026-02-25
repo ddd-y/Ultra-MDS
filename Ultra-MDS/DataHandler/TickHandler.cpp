@@ -2,6 +2,7 @@
 #include"Logger.h"
 #include"UnitProcessor.h"
 #include"tick_data.pb.h"
+#include <immintrin.h>
 
 
 
@@ -9,10 +10,15 @@ void TickHandler::processLoop()
 {
     while (my_running.load(std::memory_order_relaxed)) {
         // try_pop 是非阻塞的
-        if (TickData *currentdata=my_queue_Tick->front()) 
+        if (!my_queue_Tick->empty()) 
         {
+			TickData* currentdata = my_queue_Tick->front();
             HandleTick(*currentdata);
             my_queue_Tick->pop();
+        }
+        else
+        {
+            _mm_pause();
         }
     }
 }

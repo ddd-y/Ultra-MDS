@@ -11,5 +11,7 @@
 void AppStart() 
 {
 	SystemStarter Starter;
-	while (true) {}
+	while (true) {
+		pause(); 
+	}
 }
