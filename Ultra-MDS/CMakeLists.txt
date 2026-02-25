@@ -69,7 +69,7 @@ add_executable (Ultra-MDS
 
     "SharedDefine/tick_data.pb.h"
     "SharedDefine/tick_data.pb.cc"
-    "test/tick_perf_test.h" )
+     )
 
 
 
